@@ -33,13 +33,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 	unsigned char *X, *C;
 	double *flex, *eps, *vRibbonCount, *hRibbonCount, *N2;
-	int *size, Ch, Cv, H, W, N, *minIndv = NULL, *minIndh = NULL;
+	int *size, Ch, Cv, H, W, N, minIndv, minIndh;
     unsigned short int *Mx, *My;  //2D matrices storing cumulative minimum costs in horizontal and vertical projections
 	char *pathMx, *pathMy;  //2D matrices storing directions of paths in horizontal and vertical projections
 
     
 	void calculatePathWithMinCost(unsigned short int *, char *, unsigned char *, double *, char, int, int, int);
-	void carveRibbon(unsigned char *, unsigned char *, char *, int *, char, int, int, int);
+	void carveRibbon(unsigned char *, unsigned char *, char *, int, char, int, int, int);
 	int findMin(unsigned short int *, int, int, int, int *, int);
 
 	//Input variables
@@ -68,17 +68,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	calculatePathWithMinCost(My, pathMy, C, flex, 'v', H, W, N);
 	calculatePathWithMinCost(Mx, pathMx, C, flex, 'h', H, W, N);
 
-	if (!(minIndv = (int *)malloc(sizeof(int))))
-		printf("Memory allocation failed for minIndv in MEX.\n");
-	if (!(minIndh = (int *)malloc(sizeof(int))))
-		printf("Memory allocation failed for minIndh in MEX.\n");
-
     //Cv/Ch: minimum cost of removing a vertical/horizontal ribbon
-	Cv = findMin(My, H-1, 0, N-1, minIndv, H);
-	Ch = findMin(Mx, W-1, 0, N-1, minIndh, W);
-
-	//printf("\nCh=%d, *minIndh=%d",Ch,*minIndh);
-	//printf("\nCv=%d, *minIndv=%d\n",Cv,*minIndv);
+	Cv = findMin(My, H-1, 0, N-1, &minIndv, H);
+	Ch = findMin(Mx, W-1, 0, N-1, &minIndh, W);
 
 	while (Ch <= *eps || Cv <= *eps)
 	{
@@ -109,20 +101,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		//recalculate the cumulative minimum cost
 		calculatePathWithMinCost(My, pathMy, C, flex, 'v', H, W, N);
 		calculatePathWithMinCost(Mx, pathMx, C, flex, 'h', H, W, N);
-		Cv = findMin(My, H-1, 0, N-1, minIndv, H);
-		Ch = findMin(Mx, W-1, 0, N-1, minIndh, W);
-		
-		//printf("\nCh=%d, *minIndh=%d",Ch,*minIndh);
-		//printf("\nCv=%d, *minIndv=%d\n",Cv,*minIndv);
-
+		Cv = findMin(My, H-1, 0, N-1, &minIndv, H);
+		Ch = findMin(Mx, W-1, 0, N-1, &minIndh, W);
+        
 	}
 	free(My);
 	free(pathMy);
 	free(Mx);
 	free(pathMx);
-	free(minIndv);
-	free(minIndh);
-
 
 	//Output variable
 	plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
@@ -150,11 +136,8 @@ void calculatePathWithMinCost(unsigned short int *M, char *pathM, unsigned char 
     
 	register unsigned int indexM, indexC;
 	unsigned short int tempM;
-	int i, j, k, *minInd;
-
-	if (!(minInd = (int *)malloc(sizeof(int))))
-		printf("Memory allocation failed for minInd in MEX.\n");
-
+	int i, j, k, minInd;
+    
 	switch (direction)
 	{
 	case 'v':
@@ -189,18 +172,18 @@ void calculatePathWithMinCost(unsigned short int *M, char *pathM, unsigned char 
                 //add minimum cumulative cost from upper row and record the path
 				if (j < *flex)
 				{
-					tempM += findMin(M, i - 1, 0, j + (int)(*flex), minInd, H);
-					pathM[indexM] = *minInd - j;
+					tempM += findMin(M, i - 1, 0, j + (int)(*flex), &minInd, H);
+					pathM[indexM] = minInd - j;
 				}
 				else if (j < N - *flex)
 				{
-					tempM += findMin(M, i - 1, j - (int)(*flex), j + (int)(*flex), minInd, H);
-					pathM[indexM] = *minInd - *flex;
+					tempM += findMin(M, i - 1, j - (int)(*flex), j + (int)(*flex), &minInd, H);
+					pathM[indexM] = minInd - *flex;
 				}
 				else
 				{
-					tempM += findMin(M, i - 1, j - (int)(*flex), N - 1, minInd, H);
-					pathM[indexM] = *minInd - *flex;
+					tempM += findMin(M, i - 1, j - (int)(*flex), N - 1, &minInd, H);
+					pathM[indexM] = minInd - *flex;
 				}
 
 				M[indexM] = tempM;
@@ -241,18 +224,18 @@ void calculatePathWithMinCost(unsigned short int *M, char *pathM, unsigned char 
                 //add minimum cumulative cost from upper row and record the path
 				if (j < *flex)
 				{
-					tempM += findMin(M, i - 1, 0, j + (int)(*flex), minInd, W);
-					pathM[indexM] = *minInd - j;
+					tempM += findMin(M, i - 1, 0, j + (int)(*flex), &minInd, W);
+					pathM[indexM] = minInd - j;
 				}
 				else if (j < N - *flex)
 				{
-					tempM += findMin(M, i - 1, j - (int)(*flex), j + (int)(*flex), minInd, W);
-					pathM[indexM] = *minInd - *flex;
+					tempM += findMin(M, i - 1, j - (int)(*flex), j + (int)(*flex), &minInd, W);
+					pathM[indexM] = minInd - *flex;
 				}
 				else
 				{
-					tempM += findMin(M, i - 1, j - (int)(*flex), N - 1, minInd, W);
-					pathM[indexM] = *minInd - *flex;
+					tempM += findMin(M, i - 1, j - (int)(*flex), N - 1, &minInd, W);
+					pathM[indexM] = minInd - *flex;
 				}
 
 				M[indexM] = tempM;
@@ -335,11 +318,10 @@ void calculatePathWithMinCost(unsigned short int *M, char *pathM, unsigned char 
 		break;
 		*/
 	}
-	free(minInd);
 }
 
 
-void carveRibbon(unsigned char *X, unsigned char *C, char *pathM, int *p, char direction, int H, int W, int N)
+void carveRibbon(unsigned char *X, unsigned char *C, char *pathM, int p, char direction, int H, int W, int N)
 {
     // In this function, We remove a ribbon from video and cost buffer.
     // After this function, the number of frames will be reduced by one.
@@ -366,9 +348,9 @@ void carveRibbon(unsigned char *X, unsigned char *C, char *pathM, int *p, char d
 		{
 			for (j = 0; j < W; ++j)
 			{
-				indexX = X_INDEX(i, j, 0, 0, H, W) + HW * 3 * (*p);			//temporary index value for X
-				indexC = THREE_D_INDEX(i, j, 0, H, W) + HW * (*p);		//temporary index value for C
-				for (k = *p; k < N - 1; ++k)
+				indexX = X_INDEX(i, j, 0, 0, H, W) + HW * 3 * p;			//temporary index value for X
+				indexC = THREE_D_INDEX(i, j, 0, H, W) + HW * p;		//temporary index value for C
+				for (k = p; k < N - 1; ++k)
 				{
 					X[indexX] = X[indexX + HW * 3];					//X[X_INDEX(i,j,0,k,H,W)]=X[X_INDEX(i,j,0,k+1,H,W)];
 					X[indexX + HW] = X[indexX + HW * 4];			//X[X_INDEX(i,j,1,k,H,W)]=X[X_INDEX(i,j,1,k+1,H,W)];
@@ -379,7 +361,7 @@ void carveRibbon(unsigned char *X, unsigned char *C, char *pathM, int *p, char d
 
 				}
 			}
-			*p += pathM[TWO_D_INDEX(i, *p, H)];			//calculate ribbon path
+			p += pathM[TWO_D_INDEX(i, p, H)];			//calculate ribbon path
 		}
 
 		break;
@@ -390,9 +372,9 @@ void carveRibbon(unsigned char *X, unsigned char *C, char *pathM, int *p, char d
 		{
 			for ( j = 0; j < H; ++j)
 			{
-				indexX = X_INDEX(j, i, 0, 0, H, W) + HW * 3 * (*p);
-				indexC = THREE_D_INDEX(j, i, 0, H, W) + HW * (*p);
-				for ( k = *p; k < N - 1; ++k)
+				indexX = X_INDEX(j, i, 0, 0, H, W) + HW * 3 * p;
+				indexC = THREE_D_INDEX(j, i, 0, H, W) + HW * p;
+				for ( k = p; k < N - 1; ++k)
 				{
 					X[indexX] = X[indexX + HW * 3];					//X[X_INDEX(j,i,0,k,H,W)]=X[X_INDEX(j,i,0,k+1,H,W)];
 					X[indexX + HW] = X[indexX + HW * 4];			//X[X_INDEX(j,i,1,k,H,W)]=X[X_INDEX(j,i,1,k+1,H,W)];
@@ -403,7 +385,7 @@ void carveRibbon(unsigned char *X, unsigned char *C, char *pathM, int *p, char d
 
 				}
 			}
-			*p += pathM[TWO_D_INDEX(i, *p, W)];
+			p += pathM[TWO_D_INDEX(i, p, W)];
 		}
 
 		break;
