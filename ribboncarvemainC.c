@@ -245,7 +245,9 @@ void calculatePathWithMinCost(unsigned short int *M, char *pathM, const unsigned
 		break;
 
 
-	/* //ORIGINAL MATLAB METHOD
+	/* //ORIGINAL MATLAB METHOD 
+       //(the commented code is here for easier understanding of the code above;
+       // they both generate equivalent results while the above code may run faster)
 	case 'v':
 		//sum up the cost along the W direction, and save it to M (size of M: H*N)
 		for(i=0;i<H;i++)
@@ -370,11 +372,11 @@ void carveRibbon(unsigned char *X, unsigned char *C, const char *pathM, int p, c
 
 		for (i = W - 1; i >= 0; --i)
 		{
-			for ( j = 0; j < H; ++j)
+			for (j = 0; j < H; ++j)
 			{
 				indexX = X_INDEX(j, i, 0, 0, H, W) + HW * 3 * p;
 				indexC = THREE_D_INDEX(j, i, 0, H, W) + HW * p;
-				for ( k = p; k < N - 1; ++k)
+				for (k = p; k < N - 1; ++k)
 				{
 					X[indexX] = X[indexX + HW * 3];					//X[X_INDEX(j,i,0,k,H,W)]=X[X_INDEX(j,i,0,k+1,H,W)];
 					X[indexX + HW] = X[indexX + HW * 4];			//X[X_INDEX(j,i,1,k,H,W)]=X[X_INDEX(j,i,1,k+1,H,W)];
@@ -413,13 +415,14 @@ int findMin(const unsigned short int *M, const int row, const int startCol, cons
 	register int i;
 	int tempMin;
 	
-	tempMin = M[TWO_D_INDEX(row, startCol, h)];
-	*minInd = 0;
-	for (i = startCol + 1; i <= endCol; ++i)
+	tempMin = M[TWO_D_INDEX(row, endCol, h)];
+	*minInd = endCol - startCol;
+	for (i = endCol - 1; i >= startCol; --i)
 	{
-		if (M[TWO_D_INDEX(row, i, h)] < tempMin)
+        int currVal = M[TWO_D_INDEX(row, i, h);
+		if (currVal < tempMin)
 		{
-			tempMin = M[TWO_D_INDEX(row, i, h)];
+			tempMin = currVal];
 			*minInd = i - startCol;
 		}
 	}
