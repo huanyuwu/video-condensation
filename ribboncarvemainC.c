@@ -38,9 +38,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	char *pathMx, *pathMy;  //2D matrices storing directions of paths in horizontal and vertical projections
 
     
-	void calculatePathWithMinCost(unsigned short int *, char *, unsigned char *, double *, char, int, int, int);
-	void carveRibbon(unsigned char *, unsigned char *, char *, int, char, int, int, int);
-	int findMin(unsigned short int *, int, int, int, int *, int);
+    void calculatePathWithMinCost(unsigned short int *, char *, const unsigned char *, const int, const char, const int, const int, const int);
+	void carveRibbon(unsigned char *, unsigned char *, const char *, int, const char, const int, const int, const int);
+	int findMin(const unsigned short int *, const int, const int, const int, int *, const int);
 
 	//Input variables
 	X = mxGetData(prhs[0]);
@@ -65,8 +65,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	if (!(pathMx = (char *)malloc(W * N * sizeof(char))))
         printf("Memory allocation failed for pathMx in MEX.\n");
 
-	calculatePathWithMinCost(My, pathMy, C, flex, 'v', H, W, N);
-	calculatePathWithMinCost(Mx, pathMx, C, flex, 'h', H, W, N);
+	calculatePathWithMinCost(My, pathMy, C, (int)(*flex), 'v', H, W, N);
+	calculatePathWithMinCost(Mx, pathMx, C, (int)(*flex), 'h', H, W, N);
 
     //Cv/Ch: minimum cost of removing a vertical/horizontal ribbon
 	Cv = findMin(My, H-1, 0, N-1, &minIndv, H);
@@ -99,8 +99,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		}
 
 		//recalculate the cumulative minimum cost
-		calculatePathWithMinCost(My, pathMy, C, flex, 'v', H, W, N);
-		calculatePathWithMinCost(Mx, pathMx, C, flex, 'h', H, W, N);
+		calculatePathWithMinCost(My, pathMy, C, (int)(*flex), 'v', H, W, N);
+		calculatePathWithMinCost(Mx, pathMx, C, (int)(*flex), 'h', H, W, N);
 		Cv = findMin(My, H-1, 0, N-1, &minIndv, H);
 		Ch = findMin(Mx, W-1, 0, N-1, &minIndh, W);
         
@@ -117,7 +117,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 }
 
-void calculatePathWithMinCost(unsigned short int *M, char *pathM, unsigned char *C, double *flex, char direction, int H, int W, int N)
+void calculatePathWithMinCost(unsigned short int *M, char *pathM, const unsigned char *C, const int flex, const char direction, const int H, const int W, const int N)
 {
     // In this function, we project cost buffer on either vertical or horizontal direction, then
     // use dynamic programming to calculate path with minimum cost in each direction.
@@ -170,20 +170,20 @@ void calculatePathWithMinCost(unsigned short int *M, char *pathM, unsigned char 
 					tempM += C[indexC + H * k];
 
                 //add minimum cumulative cost from upper row and record the path
-				if (j < *flex)
+				if (j < flex)
 				{
-					tempM += findMin(M, i - 1, 0, j + (int)(*flex), &minInd, H);
+					tempM += findMin(M, i - 1, 0, j + flex, &minInd, H);
 					pathM[indexM] = minInd - j;
 				}
-				else if (j < N - *flex)
+				else if (j < N - flex)
 				{
-					tempM += findMin(M, i - 1, j - (int)(*flex), j + (int)(*flex), &minInd, H);
-					pathM[indexM] = minInd - *flex;
+					tempM += findMin(M, i - 1, j - flex, j + flex, &minInd, H);
+					pathM[indexM] = minInd - flex;
 				}
 				else
 				{
-					tempM += findMin(M, i - 1, j - (int)(*flex), N - 1, &minInd, H);
-					pathM[indexM] = minInd - *flex;
+					tempM += findMin(M, i - 1, j - flex, N - 1, &minInd, H);
+					pathM[indexM] = minInd - flex;
 				}
 
 				M[indexM] = tempM;
@@ -222,20 +222,20 @@ void calculatePathWithMinCost(unsigned short int *M, char *pathM, unsigned char 
 					tempM += C[indexC + k];
 
                 //add minimum cumulative cost from upper row and record the path
-				if (j < *flex)
+				if (j < flex)
 				{
-					tempM += findMin(M, i - 1, 0, j + (int)(*flex), &minInd, W);
+					tempM += findMin(M, i - 1, 0, j + flex, &minInd, W);
 					pathM[indexM] = minInd - j;
 				}
-				else if (j < N - *flex)
+				else if (j < N - flex)
 				{
-					tempM += findMin(M, i - 1, j - (int)(*flex), j + (int)(*flex), &minInd, W);
-					pathM[indexM] = minInd - *flex;
+					tempM += findMin(M, i - 1, j - flex, j + flex, &minInd, W);
+					pathM[indexM] = minInd - flex;
 				}
 				else
 				{
-					tempM += findMin(M, i - 1, j - (int)(*flex), N - 1, &minInd, W);
-					pathM[indexM] = minInd - *flex;
+					tempM += findMin(M, i - 1, j - flex, N - 1, &minInd, W);
+					pathM[indexM] = minInd - flex;
 				}
 
 				M[indexM] = tempM;
@@ -321,7 +321,7 @@ void calculatePathWithMinCost(unsigned short int *M, char *pathM, unsigned char 
 }
 
 
-void carveRibbon(unsigned char *X, unsigned char *C, char *pathM, int p, char direction, int H, int W, int N)
+void carveRibbon(unsigned char *X, unsigned char *C, const char *pathM, int p, const char direction, const int H, const int W, const int N)
 {
     // In this function, We remove a ribbon from video and cost buffer.
     // After this function, the number of frames will be reduced by one.
@@ -338,7 +338,7 @@ void carveRibbon(unsigned char *X, unsigned char *C, char *pathM, int p, char di
     
     
 	int i, j, k;
-	register unsigned int indexX, indexC, HW=H*W;
+	register unsigned int indexX, indexC, HW = H * W;
 
 	switch (direction)
 	{
@@ -396,7 +396,7 @@ void carveRibbon(unsigned char *X, unsigned char *C, char *pathM, int p, char di
 
 
 
-int findMin(unsigned short int *M, int row, int startCol, int endCol, int *minInd, int h)
+int findMin(const unsigned short int *M, const int row, const int startCol, const int endCol, int *minInd, const int h)
 {
     // This function finds the minimum value within a range in a row of a given matrix.
     //
@@ -405,6 +405,7 @@ int findMin(unsigned short int *M, int row, int startCol, int endCol, int *minIn
     //   row: row in the matrix
     //   startCol: starting column
     //   endCol: ending column
+    //   h: height of matrix
     // Output:
     //   minInd: index of minimum value (startCol being 0)
     //   tempMin: minimum value
